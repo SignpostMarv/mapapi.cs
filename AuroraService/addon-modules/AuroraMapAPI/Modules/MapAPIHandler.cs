@@ -56,6 +56,7 @@ namespace Aurora.Services
     public class MapAPIHandler : IService
     {
         protected IRegistryCore m_registry;
+        private IHttpServer m_textureServer = null;
         private IHttpServer m_server = null;
 
         protected static string urlMapTexture = "MapAPI_MapTexture";
@@ -88,11 +89,11 @@ namespace Aurora.Services
 
             ISimulationBase simBase = registry.RequestModuleInterface<ISimulationBase>();
 
-            m_server = simBase.GetHttpServer(handlerConfig.GetUInt(Name + "TextureServerPort", 8002));
-            m_server.AddHTTPHandler(urlMapTexture, OnHTTPGetMapImage);
+            m_textureServer = simBase.GetHttpServer(handlerConfig.GetUInt(Name + "TextureServerPort", 8002));
+            m_textureServer.AddHTTPHandler(urlMapTexture, OnHTTPGetMapImage);
 
             m_server = simBase.GetHttpServer(handlerConfig.GetUInt(Name + "Port", 8007));
-            m_server.AddStreamHandler(new MapAPIHTTPHandler_GET(this, registry));
+            m_server.AddStreamHandler(new MapAPIHTTPHandler_GET(this, registry, m_textureServer));
 
         }
 
@@ -256,14 +257,16 @@ namespace Aurora.Services
     {
         protected MapAPIHandler m_mapapi;
         protected IRegistryCore m_registry;
+        protected IHttpServer m_textureServer;
         protected static string httpPath = "/mapapi";
         private Dictionary<string, MethodInfo> APIMethods = new Dictionary<string, MethodInfo>();
 
-        public MapAPIHTTPHandler_GET(MapAPIHandler mapapi, IRegistryCore reg)
+        public MapAPIHTTPHandler_GET(MapAPIHandler mapapi, IRegistryCore reg, IHttpServer textureServer)
             : base("GET", httpPath)
         {
             m_mapapi = mapapi;
             m_registry = reg;
+            m_textureServer = textureServer;
             MethodInfo[] methods = this.GetType().GetMethods(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.DeclaredOnly);
             for (uint i = 0; i < methods.Length; ++i)
             {
@@ -333,6 +336,11 @@ namespace Aurora.Services
         {
             OSDArray resp = new OSDArray();
 
+            if (parts.Length < 1 || parts[0] != "MonolithicRegionLookup")
+            {
+                return resp;
+            }
+
             IRegionData regiondata = Aurora.DataManager.DataManager.RequestPlugin<IRegionData>();
 
             if (regiondata != null)
@@ -357,6 +365,18 @@ namespace Aurora.Services
             }
 
             return resp;
+        }
+
+        private OSDString mapTextureURL(string[] parts)
+        {
+            OSDString resp = (OSDString)OSD.FromString(string.Empty);
+
+            if (parts.Length < 1 || parts[0] != "mapTextureURL")
+            {
+                return resp;
+            }
+
+            return (OSDString)OSD.FromString( m_textureServer.ServerURI + "/index.php?method=MapAPI_MapTexture&x=_%x%_&y=_%y%_&zoom=_%zoom%_" );
         }
 
         #endregion
