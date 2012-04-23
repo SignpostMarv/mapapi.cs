@@ -190,12 +190,37 @@ namespace Aurora.Services
                 }
             }
 
-            List<GridRegion> regions = m_registry.RequestModuleInterface<IGridService>().GetRegionRange(UUID.Zero,
-                    (int)(regionX * (int)Constants.RegionSize),
-                    (int)((regionX + regionsPerTileEdge) * Constants.RegionSize),
-                    (int)(regionY * (int)Constants.RegionSize),
-                    (int)((regionY + regionsPerTileEdge) * Constants.RegionSize)
-            );
+            int imageSize = 256;
+            Bitmap mapTexture = new Bitmap(imageSize, imageSize);
+            Graphics g = Graphics.FromImage(mapTexture);
+            Color seaColor = Color.FromArgb(29, 71, 95);
+            SolidBrush sea = new SolidBrush(seaColor);
+            g.FillRectangle(sea, 0, 0, imageSize, imageSize);
+
+            IGridService gridService = m_registry.RequestModuleInterface<IGridService>();
+
+            if (gridService == null)
+            {
+                MainConsole.Instance.Error("[" + Name + "] Could not find grid service, cannot generate textures");
+                return mapTexture;
+            }
+
+            uint imageX = regionX * Constants.RegionSize;
+            uint imageY = regionY * Constants.RegionSize;
+            uint imageTop = (regionY - regionsPerTileEdge) * Constants.RegionSize;
+
+            float tileCenterX = (regionX + ((float)regionsPerTileEdge / (float)2.0)) * Constants.RegionSize;
+            float tileCenterY = (regionY + ((float)regionsPerTileEdge / (float)2.0)) * Constants.RegionSize;
+
+            uint squareRange = (Constants.RegionSize / 2) * regionsPerTileEdge;
+
+            List<GridRegion> regions = gridService.GetRegionRange(UUID.Zero, tileCenterX, tileCenterY, squareRange);
+
+            if (regions.Count == 0)
+            {
+                return mapTexture;
+            }
+
             List<Image> bitImages = new List<Image>();
             List<FastBitmap> fastbitImages = new List<FastBitmap>();
 
@@ -215,31 +240,19 @@ namespace Aurora.Services
                 }
             }
 
-            int imageSize = 256;
             float regionSizeOnImage = (float)imageSize / (float)regionsPerTileEdge;
             float zoomScale = (imageSize / zoomLevel);
-            Bitmap mapTexture = new Bitmap(imageSize, imageSize);
-            Graphics g = Graphics.FromImage(mapTexture);
-            Color seaColor = Color.FromArgb(29, 71, 95);
-            SolidBrush sea = new SolidBrush(seaColor);
-            g.FillRectangle(sea, 0, 0, imageSize, imageSize);
 
             for (int i = 0; i < regions.Count; i++)
             {
-                float x = ((regions[i].RegionLocX - (regionX * (float)Constants.RegionSize) + Constants.RegionSize / 2) / (float)Constants.RegionSize);
-                float y = ((regions[i].RegionLocY - (regionY * (float)Constants.RegionSize) + Constants.RegionSize / 2) / (float)Constants.RegionSize);
+                float width = (bitImages[i].Width * (regions[i].RegionSizeX / bitImages[i].Width)) * ((float)regionSizeOnImage / (float)Constants.RegionSize);
+                float height = (bitImages[i].Height * (regions[i].RegionSizeY / bitImages[i].Height)) * ((float)regionSizeOnImage / (float)Constants.RegionSize);
 
-                int regionWidth = regions[i].RegionSizeX / Constants.RegionSize;
-                int regionHeight = regions[i].RegionSizeY / Constants.RegionSize;
-                float posX = (x * zoomScale) + imageSize / 2;
-                float posY = (y * zoomScale) + imageSize / 2;
+                float tileFactorWidth = (float)bitImages[i].Width / (float)regions[i].RegionSizeX;
+                float tileFactorHeight = (float)bitImages[i].Height / (float)regions[i].RegionSizeY;
 
-
-                float width = (regions[i].RegionSizeX / (float)Constants.RegionSize) * regionSizeOnImage;
-                float height = (regions[i].RegionSizeY / (float)Constants.RegionSize) * regionSizeOnImage;
-
-                posX = ((regions[i].RegionLocX / (float)Constants.RegionSize) - regionX) * width;
-                posY = ((regions[i].RegionLocY / (float)Constants.RegionSize) - regionY) * height;
+                float posX = ((((float)regions[i].RegionLocX - (float)imageX)) / regionSizeOnImage) * imageSize;
+                float posY = ((((float)regions[i].RegionLocY - (float)imageY)) / regionSizeOnImage) * imageSize;
 
                 g.DrawImage(bitImages[i], posX, imageSize - posY - height, width, height); // y origin is top
             }
