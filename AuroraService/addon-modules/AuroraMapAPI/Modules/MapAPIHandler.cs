@@ -214,7 +214,7 @@ namespace Aurora.Services
 
             uint squareRange = (Constants.RegionSize / 2) * regionsPerTileEdge;
 
-            List<GridRegion> regions = gridService.GetRegionRange(UUID.Zero, tileCenterX, tileCenterY, squareRange);
+            List<GridRegion> regions = gridService.GetRegionRange(UUID.Zero, tileCenterX, tileCenterY, squareRange - 1);
 
             if (regions.Count == 0)
             {
@@ -251,8 +251,8 @@ namespace Aurora.Services
                 float tileFactorWidth = (float)bitImages[i].Width / (float)regions[i].RegionSizeX;
                 float tileFactorHeight = (float)bitImages[i].Height / (float)regions[i].RegionSizeY;
 
-                float posX = ((((float)regions[i].RegionLocX - (float)imageX)) / regionSizeOnImage) * imageSize;
-                float posY = ((((float)regions[i].RegionLocY - (float)imageY)) / regionSizeOnImage) * imageSize;
+                float posX = ((((float)regions[i].RegionLocX - (float)imageX)) / Constants.RegionSize) * regionSizeOnImage;
+                float posY = ((((float)regions[i].RegionLocY - (float)imageY)) / Constants.RegionSize) * regionSizeOnImage;
 
                 g.DrawImage(bitImages[i], posX, imageSize - posY - height, width, height); // y origin is top
             }
