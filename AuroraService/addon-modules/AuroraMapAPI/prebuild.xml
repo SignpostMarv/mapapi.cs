@@ -34,6 +34,7 @@
   <ReferencePath>../../../bin/</ReferencePath>
   <Reference name="System"/>
   <Reference name="System.Drawing"/>
+  <Reference name="System.Web"/>
 
   <Reference name="Aurora.Framework"/>
   <Reference name="Aurora.Simulation.Base"/>

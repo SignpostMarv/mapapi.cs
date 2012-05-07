@@ -34,6 +34,7 @@ using System.Drawing.Imaging;
 using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
+using System.Web;
 
 using BitmapProcessing;
 
@@ -307,6 +308,10 @@ namespace Aurora.Services
             {
                 parts = methodPath.Split('/');
             }
+            for (int i = 0; i < parts.Length; ++i)
+            {
+                parts[i] = HttpUtility.UrlDecode(parts[i]);
+            }
 
             if (parts.Length == 0)
             {
@@ -390,6 +395,137 @@ namespace Aurora.Services
             }
 
             return (OSDString)OSD.FromString( m_textureServer.ServerURI + "/index.php?method=MapAPI_MapTexture&x=_%x%_&y=_%y%_&zoom=_%zoom%_" );
+        }
+
+        private OSDMap RegionDetails(string[] parts)
+        {
+            OSDMap resp = new OSDMap();
+
+            if (parts.Length < 2 || parts[0] != "RegionDetails")
+            {
+                resp["Error"] = OSD.FromString("Invalid method invokation");
+            }
+            else
+            {
+                IRegionData regiondata = Aurora.DataManager.DataManager.RequestPlugin<IRegionData>();
+                GridRegion region = null;
+
+                if (regiondata == null)
+                {
+                    resp["Error"] = OSD.FromString("Could not find IRegionData");
+                }
+                else
+                {
+                    UUID scopeID = UUID.Zero;
+                    UUID regionID = UUID.Zero;
+                    int x;
+                    int y;
+                    int z=0;
+                    if (parts.Length == 2)
+                    {
+                        bool isUUID = UUID.TryParse(parts[1], out regionID);
+                        if (isUUID)
+                        {
+                            region = regiondata.Get(regionID, scopeID);
+                        }
+                        else
+                        {
+                            List<GridRegion> regions = regiondata.Get(parts[1], scopeID);
+                            if (regions.Count > 0)
+                            {
+                                region = regions[0];
+                            }
+                        }
+                    }
+                    else if (parts.Length == 3)
+                    {
+                        bool hasScopeID = UUID.TryParse(parts[1], out scopeID);
+                        bool hasRegionID = UUID.TryParse(parts[2], out regionID);
+
+                        if (!hasScopeID && !hasRegionID && (int.TryParse(parts[1], out x) && int.TryParse(parts[2], out y)))
+                        {
+                            List<GridRegion> regions = regiondata.Get(x, y, UUID.Zero);
+                            if (regions.Count == 1)
+                            {
+                                region = regions[0];
+                            }
+                            else
+                            {
+                                foreach (GridRegion _region in regions)
+                                {
+                                    if (_region.RegionLocZ == 0)
+                                    {
+                                        region = _region;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        else if (hasScopeID && hasRegionID)
+                        {
+                            region = regiondata.Get(regionID, scopeID);
+                        }
+                        else if (hasScopeID && !hasRegionID)
+                        {
+                            List<GridRegion> regions = regiondata.Get(parts[1], scopeID);
+                            if (regions.Count > 0)
+                            {
+                                region = regions[0];
+                            }
+                        }
+                    }
+                    else if (parts.Length == 4 && (int.TryParse(parts[1], out x) && int.TryParse(parts[2], out y) && int.TryParse(parts[3], out z)))
+                    {
+                        List<GridRegion> regions = regiondata.Get(x, y, UUID.Zero);
+                        foreach (GridRegion _region in regions)
+                        {
+                            if (_region.RegionLocZ == z)
+                            {
+                                region = _region;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                if (region == null)
+                {
+                    resp["Error"] = OSD.FromString("Region not found");
+                }
+                else
+                {
+                    OSDMap regionDetails = new OSDMap();
+
+                    regionDetails["ScopeID"] = region.ScopeID;
+                    regionDetails["RegionID"] = region.RegionID;
+                    regionDetails["RegionName"] = region.RegionName;
+                    
+                    regionDetails["RegionLocX"] = region.RegionLocX;
+                    regionDetails["RegionLocY"] = region.RegionLocY;
+                    regionDetails["RegionLocZ"] = region.RegionLocZ;
+
+                    regionDetails["RegionSizeX"] = region.RegionSizeX;
+                    regionDetails["RegionSizeY"] = region.RegionSizeY;
+                    regionDetails["RegionSizeZ"] = region.RegionSizeZ;
+
+                    regionDetails["EstateOwnerID"] = region.EstateOwner;
+                    regionDetails["EstateOwnerName"] = "Unknown User";
+
+                    IUserAccountService accountService = m_registry.RequestModuleInterface<IUserAccountService>();
+                    if (accountService != null && region.EstateOwner != UUID.Zero)
+                    {
+                        UserAccount user = accountService.GetUserAccount(region.ScopeID, region.EstateOwner);
+                        if (user != null)
+                        {
+                            regionDetails["EstateOwnerName"] = user.Name;
+                        }
+                    }
+
+                    resp["Region"] = regionDetails;
+                }
+            }
+
+            return resp;
         }
 
         #endregion
