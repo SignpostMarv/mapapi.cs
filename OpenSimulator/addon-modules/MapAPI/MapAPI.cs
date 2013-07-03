@@ -8,34 +8,26 @@ using Nini.Config;
 using Mono.Addins;
 using OpenMetaverse;
 
-using OpenSim.Server.Base;
+using OpenSim.Framework.Servers;
 using OpenSim.Framework.Servers.HttpServer;
+using OpenSim.Server.Base;
 using OpenSim.Server.Handlers.Base;
+using OpenSim.Region.Framework.Interfaces;
+using OpenSim.Region.Framework.Scenes;
 
 using Diva.Utils;
 
 namespace SignpostMarv.OpenSim
 {
-	class MapAPIConnector : ServiceConnector
-	{
-        /// <summary>
-        /// Logger
-        /// </summary>
-        private static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
+    class MapAPI
+    {
         /// <summary>
         /// Config section name
         /// </summary>
         private const string m_ConfigName = "MapAPI";
 
-        /// <summary>
-        /// Sets up the handlers
-        /// </summary>
-        /// <param name="config"></param>
-        /// <param name="server"></param>
-        /// <param name="configName"></param>
-        public MapAPIConnector(IConfigSource config, IHttpServer server,
-            string configName) : base(config, server, configName){
+        public static void Init(IConfigSource config, IHttpServer server)
+        {
             IConfig serverConfig = config.Configs[m_ConfigName];
             if(serverConfig == null)
                 throw new Exception(string.Format("No section {0} in config file", m_ConfigName));
@@ -55,7 +47,69 @@ namespace SignpostMarv.OpenSim
             if(enableWebSocketAPI)
                 server.AddWebSocketHandler("/mapapi", MapAPIWebSocketHandler.Init);
         }
+    }
+
+	class MapAPIConnector : ServiceConnector
+	{
+        /// <summary>
+        /// Logger
+        /// </summary>
+        public static readonly ILog m_log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        /// <summary>
+        /// Sets up the handlers
+        /// </summary>
+        /// <param name="config"></param>
+        /// <param name="server"></param>
+        /// <param name="configName"></param>
+        public MapAPIConnector(IConfigSource config, IHttpServer server,
+                string configName) : base(config, server, configName){
+            MapAPI.Init(config, server);
+        }
 	}
+
+    [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule", Id = "LocalMapAPIConnector")]
+    class LocalMapAPIConnector : ISharedRegionModule
+    {
+        #region ISharedRegionModule
+
+        public Type ReplaceableInterface
+        {
+            get { return null; }
+        }
+
+        public string Name
+        {
+            get { return "LocalMapAPIConnector"; }
+        }
+
+        public void Initialise(IConfigSource config)
+        {
+            MapAPI.Init(config, MainServer.Instance);
+        }
+
+        public void PostInitialise()
+        {
+        }
+
+        public void Close()
+        {
+        }
+
+        public void AddRegion(Scene scene)
+        {
+        }
+
+        public void RemoveRegion(Scene scene)
+        {
+        }
+
+        public void RegionLoaded(Scene scene)
+        {
+        }
+
+        #endregion
+    }
 
     class MapAPIHTTPHandler : BaseStreamHandler
     {

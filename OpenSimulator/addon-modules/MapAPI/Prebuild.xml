@@ -25,6 +25,7 @@
 	<Reference name="OpenSim.Server.Handlers"/>
 	<Reference name="OpenSim.Services.Base"/>
 	<Reference name="OpenSim.Services.Interfaces"/>
+	<Reference name="OpenSim.Region.Framework"/>
 	
 	<Reference name="Diva.Utils"/>
 
