@@ -71,6 +71,21 @@ namespace SignpostMarv.OpenSim
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule", Id = "LocalMapAPIConnector")]
     public class LocalMapAPIConnector : ISharedRegionModule
     {
+        private static readonly ILog m_log =
+            LogManager.GetLogger(
+                MethodBase.GetCurrentMethod().DeclaringType);
+
+        public LocalMapAPIConnector()
+        {
+            m_log.Debug("[LOCAL MAPAPI CONNECTOR]: LocalMapAPIConnector no params");
+        }
+
+        public LocalMapAPIConnector(IConfigSource config)
+        {
+            m_log.Debug("[LOCAL MAPAPI CONNECTOR]: LocalMapAPIConnector instantiated directly");
+            Initialise(config);
+        }
+
         #region ISharedRegionModule
 
         public Type ReplaceableInterface
