@@ -19,7 +19,7 @@ using Diva.Utils;
 
 namespace SignpostMarv.OpenSim
 {
-    class MapAPI
+    public class MapAPI
     {
         /// <summary>
         /// Config section name
@@ -49,7 +49,7 @@ namespace SignpostMarv.OpenSim
         }
     }
 
-	class MapAPIConnector : ServiceConnector
+	public class MapAPIConnector : ServiceConnector
 	{
         /// <summary>
         /// Logger
@@ -69,7 +69,7 @@ namespace SignpostMarv.OpenSim
 	}
 
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule", Id = "LocalMapAPIConnector")]
-    class LocalMapAPIConnector : ISharedRegionModule
+    public class LocalMapAPIConnector : ISharedRegionModule
     {
         #region ISharedRegionModule
 
@@ -111,7 +111,7 @@ namespace SignpostMarv.OpenSim
         #endregion
     }
 
-    class MapAPIHTTPHandler : BaseStreamHandler
+    public class MapAPIHTTPHandler : BaseStreamHandler
     {
         public MapAPIHTTPHandler() : base("GET", "/mapapi")
         {
@@ -129,7 +129,7 @@ namespace SignpostMarv.OpenSim
         }
     }
 
-    class MapAPIWebSocketHandler
+    public class MapAPIWebSocketHandler
     {
         
         // This gets called by BaseHttpServer and gives us an opportunity to set things on the WebSocket handler before we turn it on
