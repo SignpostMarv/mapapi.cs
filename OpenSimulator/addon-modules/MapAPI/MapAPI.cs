@@ -52,6 +52,38 @@ namespace SignpostMarv.OpenSim
             if (enableWebSocketAPI)
                 server.AddWebSocketHandler("/mapapi", MapAPIWebSocketHandler.Init);
         }
+
+
+        public static OSDString pos2region(uint x, uint y)
+        {
+            Scene scene;
+            if (SceneManager.Instance.TryGetScene(x, y, out scene))
+                return (OSDString)scene.RegionInfo.RegionName;
+            else
+                return (OSDString)string.Empty;
+        }
+
+        public static OSDMap region2pos(string name)
+        {
+            Scene scene;
+            OSDMap result;
+            if (SceneManager.Instance.TryGetScene(name, out scene))
+            {
+                result = new OSDMap(new Dictionary<string, OSD>(){
+                    {"x", scene.RegionInfo.RegionLocX},
+                    {"y", scene.RegionInfo.RegionLocY},
+                    {"region", scene.RegionInfo.RegionName}
+                });
+            }
+            else
+            {
+                result = new OSDMap(new Dictionary<string, OSD>(){
+                    {"error", "Could not find region with specified name."}
+                });
+            }
+
+            return result;
+        }
     }
 
     public class MapAPIConnector : ServiceConnector
@@ -151,23 +183,72 @@ namespace SignpostMarv.OpenSim
             string resource = Uri.UnescapeDataString(GetParam(path)).Trim(
                     WebAppUtils.DirectorySeparatorChars);
 
-            string result = string.Empty;
+            OSD result = (OSDString)string.Empty;
 
             httpResponse.ContentType = "application/json";
 
+            bool region2pos = resource.StartsWith("region2pos/");
+
             if (resource == string.Empty)
             {
-                result = OSDParser.SerializeJsonString((OSD)(
+                result = (OSD)(
                     new OSDMap(new Dictionary<string, OSD>(){
                         {"config", new OSDMap(new Dictionary<string ,OSD>(){
                             {"HTTP", m_HTTPEnabled},
                             {"WebSocket", m_WebSocketEnabled}
                         })}
                     }
-                )), true);
+                ));
+            }
+            else if (resource.StartsWith("pos2region/"))
+            {
+                string[] args = resource.Split('/');
+                if (args.Length == 3)
+                {
+                    uint x;
+                    uint y;
+                    if (uint.TryParse(args[1], out x) && uint.TryParse(args[2], out y))
+                    {
+                        result = new OSDMap(new Dictionary<string, OSD>(){
+                            {"region", MapAPI.pos2region(x, y)}
+                        });
+                    }
+                    else
+                    {
+                        result = new OSDMap(new Dictionary<string, OSD>(){
+                            {"error", "X & Y arguments should be integers"}
+                        });
+                    }
+                }
+                else
+                {
+                    result = new OSDMap(new Dictionary<string, OSD>(){
+                        {"error", args.Length < 3 ?
+                            "Insufficient arguments (x/y coords missing)" :
+                            "Too many arguments"
+                        }
+                    });
+                }
+            }
+            else if (resource.StartsWith("region2pos/"))
+            {
+                string[] args = resource.Split('/');
+                if (args.Length == 2)
+                {
+                    result = MapAPI.region2pos(args[1]);
+                }
+                else
+                {
+                    result = new OSDMap(new Dictionary<string, OSD>(){
+                        {"error", args.Length < 2 ?
+                            "Insufficient arguments (region name missing)" :
+                            "Too many arguments"
+                        }
+                    });
+                }
             }
 
-            return WebAppUtils.StringToBytes(result);
+            return WebAppUtils.StringToBytes(OSDParser.SerializeJsonString((OSD)result));
         }
     }
 
