@@ -7,6 +7,7 @@ using log4net;
 using Nini.Config;
 using Mono.Addins;
 using OpenMetaverse;
+using OpenMetaverse.StructuredData;
 
 using OpenSim.Framework.Servers;
 using OpenSim.Framework.Servers.HttpServer;
