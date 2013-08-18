@@ -87,13 +87,24 @@ namespace SignpostMarv.OpenSim
         }
 
 
-        public static OSDString pos2region(uint x, uint y)
+        public static OSDMap pos2region(uint x, uint y)
         {
             Scene scene;
+            OSDMap result;
             if (SceneManager.Instance.TryGetScene(x, y, out scene))
-                return (OSDString)scene.RegionInfo.RegionName;
+            {
+                result = new OSDMap(new Dictionary<string,OSD>(){
+                    {"region", scene.RegionInfo.RegionName}
+                });
+            }
             else
-                return (OSDString)string.Empty;
+            {
+                result = new OSDMap(new Dictionary<string, OSD>(){
+                    {"error", "No region found at the specified coordinates"}
+                });
+            }
+
+            return result;
         }
 
         public static OSDMap region2pos(string name)
@@ -246,9 +257,7 @@ namespace SignpostMarv.OpenSim
                     uint y;
                     if (uint.TryParse(args[1], out x) && uint.TryParse(args[2], out y))
                     {
-                        result = new OSDMap(new Dictionary<string, OSD>(){
-                            {"region", MapAPI.pos2region(x, y)}
-                        });
+                        result = MapAPI.pos2region(x, y);
                     }
                     else
                     {
