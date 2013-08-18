@@ -31,17 +31,50 @@ namespace SignpostMarv.OpenSim
         /// </summary>
         private const string m_ConfigName = "MapAPI";
 
+        public static bool enableWebSocketAPI { get; private set; }
+
+        public static bool enableHTTPAPI { get; private set; }
+
+        public static string mapImageServerURI { get; private set; }
+
+
+
         public static void Init(IConfigSource config, IHttpServer server)
         {
             IConfig serverConfig = config.Configs[m_ConfigName];
             if (serverConfig == null)
                 throw new Exception(string.Format("No section {0} in config file", m_ConfigName));
 
-            bool enableWebSocketAPI = serverConfig.GetBoolean(
+            enableWebSocketAPI = serverConfig.GetBoolean(
                     "EnableWebSocketAPI", false);
 
-            bool enableHTTPAPI = serverConfig.GetBoolean(
+            enableHTTPAPI = serverConfig.GetBoolean(
                     "EnableHTTPAPI", false);
+
+            #region Adapted from MapImageServicesConnector.Initialise
+
+            IConfig mapConfig = config.Configs["MapImageService"];
+            if (config == null)
+            {
+                throw new Exception("MapImage connector init error");
+            }
+
+            string serviceURI = mapConfig.GetString("MapImageServerURI",
+                    String.Empty);
+
+            if (serviceURI == String.Empty)
+            {
+                mapImageServerURI =
+                    (server.UseSSL ? "https" : "http") + "://" +
+                    (server.UseSSL ? server.SSLCommonName : "localhost") + ":" +
+                    (server.UseSSL ? server.SSLPort : server.Port).ToString();
+            }
+            else
+            {
+                mapImageServerURI = serviceURI.TrimEnd('/');
+            }
+
+            #endregion
 
             if (!enableHTTPAPI && !enableHTTPAPI)
                 throw new Exception("All APIs disabled.");
@@ -83,6 +116,17 @@ namespace SignpostMarv.OpenSim
             }
 
             return result;
+        }
+
+        public static OSDMap config()
+        {
+            return new OSDMap(new Dictionary<string, OSD>(){
+                {"config", new OSDMap(new Dictionary<string ,OSD>(){
+                    {"HTTP", enableHTTPAPI},
+                    {"WebSocket", enableWebSocketAPI},
+                    {"MapImageURI", mapImageServerURI}
+                })}
+            });
         }
     }
 
@@ -191,14 +235,7 @@ namespace SignpostMarv.OpenSim
 
             if (resource == string.Empty)
             {
-                result = (OSD)(
-                    new OSDMap(new Dictionary<string, OSD>(){
-                        {"config", new OSDMap(new Dictionary<string ,OSD>(){
-                            {"HTTP", m_HTTPEnabled},
-                            {"WebSocket", m_WebSocketEnabled}
-                        })}
-                    }
-                ));
+                result = MapAPI.config();
             }
             else if (resource.StartsWith("pos2region/"))
             {
