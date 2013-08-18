@@ -285,7 +285,7 @@ namespace SignpostMarv.OpenSim
                 }
             }
 
-            return WebAppUtils.StringToBytes(OSDParser.SerializeJsonString((OSD)result));
+            return WebAppUtils.StringToBytes(OSDParser.SerializeJsonString((OSD)result, true));
         }
     }
 
