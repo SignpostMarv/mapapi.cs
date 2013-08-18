@@ -18,6 +18,10 @@ using OpenSim.Region.Framework.Scenes;
 
 using Diva.Utils;
 
+// Our plugin loader needs the information about our module
+[assembly: Addin("MapAPI.cs", "0.1")]
+[assembly: AddinDependency("OpenSim", "0.5")]
+
 namespace SignpostMarv.OpenSim
 {
     public class MapAPI
@@ -42,8 +46,8 @@ namespace SignpostMarv.OpenSim
             if(!enableHTTPAPI && !enableHTTPAPI)
                 throw new Exception("All APIs disabled.");
 
-            if(enableHTTPAPI)
-                server.AddStreamHandler(new MapAPIHTTPHandler());
+            if (enableHTTPAPI)
+                server.AddStreamHandler(new MapAPIHTTPHandler(enableHTTPAPI, enableWebSocketAPI));
 
             if(enableWebSocketAPI)
                 server.AddWebSocketHandler("/mapapi", MapAPIWebSocketHandler.Init);
@@ -129,8 +133,14 @@ namespace SignpostMarv.OpenSim
 
     public class MapAPIHTTPHandler : BaseStreamHandler
     {
-        public MapAPIHTTPHandler() : base("GET", "/mapapi")
+        private bool m_HTTPEnabled = false;
+        private bool m_WebSocketEnabled = false;
+
+        public MapAPIHTTPHandler(bool HTTP, bool WebSocket)
+            : base("GET", "/mapapi")
         {
+            m_HTTPEnabled = HTTP;
+            m_WebSocketEnabled = WebSocket;
         }
 
         public override byte[] Handle(string path, Stream requestData,
@@ -139,15 +149,29 @@ namespace SignpostMarv.OpenSim
             string resource = Uri.UnescapeDataString(GetParam(path)).Trim(
                     WebAppUtils.DirectorySeparatorChars);
 
+            string result = string.Empty;
+
             httpResponse.ContentType = "application/json";
 
-            return WebAppUtils.StringToBytes(string.Empty);
+            if (resource == string.Empty)
+            {
+                result = OSDParser.SerializeJsonString((OSD)(
+                    new OSDMap(new Dictionary<string, OSD>(){
+                        {"config", new OSDMap(new Dictionary<string ,OSD>(){
+                            {"HTTP", m_HTTPEnabled},
+                            {"WebSocket", m_WebSocketEnabled}
+                        })}
+                    }
+                )), true);
+            }
+
+            return WebAppUtils.StringToBytes(result);
         }
     }
 
     public class MapAPIWebSocketHandler
     {
-        
+
         // This gets called by BaseHttpServer and gives us an opportunity to set things on the WebSocket handler before we turn it on
         public static void Init(string path, WebSocketHttpServerHandler handler)
         {
