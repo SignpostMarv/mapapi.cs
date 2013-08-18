@@ -93,7 +93,9 @@ namespace SignpostMarv.OpenSim
             OSDMap result;
             if (SceneManager.Instance.TryGetScene(x, y, out scene))
             {
-                result = new OSDMap(new Dictionary<string,OSD>(){
+                result = new OSDMap(new Dictionary<string, OSD>(){
+                    {"x", scene.RegionInfo.RegionLocX},
+                    {"y", scene.RegionInfo.RegionLocY},
                     {"region", scene.RegionInfo.RegionName}
                 });
             }
