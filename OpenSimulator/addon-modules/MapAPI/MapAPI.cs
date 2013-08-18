@@ -34,7 +34,7 @@ namespace SignpostMarv.OpenSim
         public static void Init(IConfigSource config, IHttpServer server)
         {
             IConfig serverConfig = config.Configs[m_ConfigName];
-            if(serverConfig == null)
+            if (serverConfig == null)
                 throw new Exception(string.Format("No section {0} in config file", m_ConfigName));
 
             bool enableWebSocketAPI = serverConfig.GetBoolean(
@@ -43,19 +43,19 @@ namespace SignpostMarv.OpenSim
             bool enableHTTPAPI = serverConfig.GetBoolean(
                     "EnableHTTPAPI", false);
 
-            if(!enableHTTPAPI && !enableHTTPAPI)
+            if (!enableHTTPAPI && !enableHTTPAPI)
                 throw new Exception("All APIs disabled.");
 
             if (enableHTTPAPI)
                 server.AddStreamHandler(new MapAPIHTTPHandler(enableHTTPAPI, enableWebSocketAPI));
 
-            if(enableWebSocketAPI)
+            if (enableWebSocketAPI)
                 server.AddWebSocketHandler("/mapapi", MapAPIWebSocketHandler.Init);
         }
     }
 
-	public class MapAPIConnector : ServiceConnector
-	{
+    public class MapAPIConnector : ServiceConnector
+    {
         /// <summary>
         /// Logger
         /// </summary>
@@ -68,10 +68,12 @@ namespace SignpostMarv.OpenSim
         /// <param name="server"></param>
         /// <param name="configName"></param>
         public MapAPIConnector(IConfigSource config, IHttpServer server,
-                string configName) : base(config, server, configName){
+                string configName)
+            : base(config, server, configName)
+        {
             MapAPI.Init(config, server);
         }
-	}
+    }
 
     [Extension(Path = "/OpenSim/RegionModules", NodeName = "RegionModule", Id = "LocalMapAPIConnector")]
     public class LocalMapAPIConnector : ISharedRegionModule
