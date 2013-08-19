@@ -240,6 +240,11 @@ namespace SignpostMarv.OpenSim
             string resource = Uri.UnescapeDataString(GetParam(path)).Trim(
                     WebAppUtils.DirectorySeparatorChars);
 
+            if ((new List<string>(httpRequest.Headers.AllKeys)).Contains("origin"))
+            {
+                httpResponse.AddHeader("Access-Control-Allow-Origin", "*");
+            }
+
             OSD result = (OSDString)string.Empty;
 
             httpResponse.ContentType = "application/json";
